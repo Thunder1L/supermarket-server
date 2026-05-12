@@ -1,0 +1,161 @@
+src
+├── api                     // 接口层
+│   ├── address.js
+│   ├── adminOrder.js
+│   ├── adminUser.js
+│   ├── card.js
+│   ├── cart.js
+│   ├── coupon.js
+│   ├── dashboard.js
+│   ├── message.js
+│   ├── order.js
+│   ├── product.js
+│   └── user.js
+├── assets                  // 静态资源
+│   ├── bg
+│   └── products
+├── components              // 公共组件
+│   ├── AdminHeader.vue
+│   ├── ChatBox.vue
+│   ├── Footer.vue
+│   ├── Navbar.vue
+│   └── Sidebar.vue
+├── router                  // 路由配置
+│   └── index.js
+├── utils                   // 工具类
+│   └── request.js          // Axios 封装
+├── views                   // 页面视图
+│   ├── admin               // 管理端页面
+│   │   ├── AdminForget.vue
+│   │   ├── AdminLogin.vue
+│   │   ├── AdminMessage.vue
+│   │   ├── AdminRegister.vue
+│   │   ├── CategoryManage.vue
+│   │   ├── Dashboard.vue
+│   │   ├── OrderManage.vue
+│   │   ├── ProductManage.vue
+│   │   └── UserManage.vue
+│   ├── client              // 客户端页面
+│   │   ├── Cart.vue
+│   │   ├── Checkout.vue
+│   │   ├── Forget.vue
+│   │   ├── Home.vue
+│   │   ├── Login.vue
+│   │   ├── Order.vue
+│   │   ├── OrderDetail.vue
+│   │   ├── Payment.vue
+│   │   ├── ProductList.vue
+│   │   ├── Profile.vue
+│   │   └── Register.vue
+│   └── LoginChoice.vue     // 入口选择页
+├── App.vue                 // 根组件
+├── main.js                 // 入口文件
+└── vite.config.js          // Vite 配置
+
+
+src
+└── main
+    ├── java
+    │   └── com.supermarket.server
+    │       ├── common                  // 通用模块
+    │       │   ├── controller
+    │       │   │   └── FileController.java
+    │       │   ├── dto                 // 数据传输对象
+    │       │   │   ├── CartVo.java
+    │       │   │   ├── ChangePasswordRequest.java
+    │       │   │   ├── DashboardStats.java
+    │       │   │   ├── LoginRequest.java
+    │       │   │   ├── LoginResult.java
+    │       │   │   ├── OrdersSubmitRequest.java
+    │       │   │   ├── ProductQueryRequest.java
+    │       │   │   ├── RegisterRequest.java
+    │       │   │   ├── ResetPasswordRequest.java
+    │       │   │   └── UpdateUserRequest.java
+    │       │   ├── entity              // 通用实体父类
+    │       │   │   ├── BaseEntity.java
+    │       │   │   └── Message.java
+    │       │   ├── exception           // 全局异常处理
+    │       │   │   └── GlobalExceptionHandler.java
+    │       │   ├── result              // 统一返回结果
+    │       │   │   └── Result.java
+    │       │   └── util                // 工具类
+    │       │       └── JwtUtil.java
+    │       ├── config                  // 配置类
+    │       │   ├── MybatisPlusConfig.java
+    │       │   ├── SecurityConfig.java
+    │       │   └── WebMvcConfig.java
+    │       ├── filter                  // 过滤器 (截图折叠，通常放JwtFilter)
+    │       ├── module                  // 业务模块
+    │       │   ├── admin               // 管理员模块
+    │       │   │   ├── controller
+    │       │   │   │   └── AdminController.java
+    │       │   │   ├── entity
+    │       │   │   │   └── Admin.java
+    │       │   │   ├── mapper
+    │       │   │   │   └── AdminMapper.java
+    │       │   │   └── service
+    │       │   │       └── AdminService.java
+    │       │   ├── cart                // 购物车模块
+    │       │   │   ├── controller
+    │       │   │   │   └── CartController.java
+    │       │   │   ├── entity
+    │       │   │   │   └── Cart.java
+    │       │   │   ├── mapper
+    │       │   │   │   └── CartMapper.java
+    │       │   │   └── service
+    │       │   │       └── CartService.java
+    │       │   ├── client              // 客户端/用户模块
+    │       │   │   ├── controller
+    │       │   │   │   ├── AddressController.java
+    │       │   │   │   ├── CardController.java
+    │       │   │   │   ├── CouponController.java
+    │       │   │   │   ├── MessageController.java
+    │       │   │   │   └── UserController.java
+    │       │   │   ├── entity
+    │       │   │   │   ├── Address.java
+    │       │   │   │   ├── AfterSales.java
+    │       │   │   │   ├── BankCard.java
+    │       │   │   │   ├── ClientUser.java
+    │       │   │   │   ├── Coupon.java
+    │       │   │   │   └── UserCoupon.java
+    │       │   │   ├── mapper
+    │       │   │   │   ├── AddressMapper.java
+    │       │   │   │   ├── AfterSalesMapper.java
+    │       │   │   │   ├── BankCardMapper.java
+    │       │   │   │   ├── ClientUserMapper.java
+    │       │   │   │   ├── CouponMapper.java
+    │       │   │   │   ├── MessageMapper.java
+    │       │   │   │   └── UserCouponMapper.java
+    │       │   │   └── service
+    │       │   │       ├── AddressService.java
+    │       │   │       ├── ClientUserService.java
+    │       │   │       └── MessageService.java
+    │       │   ├── order               // 订单模块
+    │       │   │   ├── controller
+    │       │   │   │   ├── AdminOrderController.java
+    │       │   │   │   └── ClientOrderController.java
+    │       │   │   ├── entity
+    │       │   │   │   ├── OrderItem.java
+    │       │   │   │   └── Orders.java
+    │       │   │   ├── mapper
+    │       │   │   │   ├── OrderItemMapper.java
+    │       │   │   │   └── OrdersMapper.java
+    │       │   │   └── service
+    │       │   │       └── OrderService.java
+    │       │   └── product             // 商品模块
+    │       │       ├── controller
+    │       │       │   └── ProductController.java
+    │       │       ├── entity
+    │       │       │   ├── Category.java
+    │       │       │   └── Product.java
+    │       │       ├── mapper
+    │       │       │   ├── CategoryMapper.java
+    │       │       │   └── ProductMapper.java
+    │       │       └── service
+    │       │           └── ProductService.java
+    │       └── SupermarketServerApplication.java  // 启动类
+    └── resources
+        ├── static
+        │   └── images              // 图片上传存储位置
+        ├── templates
+        └── application.yml         // 配置文件

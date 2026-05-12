@@ -1,0 +1,28 @@
+拉取最新版 Redis 镜像
+docker pull redis:latest
+
+启动 Redis 容器
+docker run -d --name supermarket-redis -p 6379:6379 redis:latest
+
+唤醒 Redis容器
+docker start supermarket-redis
+
+查看 Redis 容器
+docker ps
+
+查看 Redis 容器日志
+docker logs redis
+
+进入 Redis 容器
+docker exec -it redis /bin/bash
+
+Redis 命令
+redis-cli
+
+查看所有键
+keys *
+
+设置键值
+set key value
+
+
