@@ -1,31 +1,31 @@
 server:
   port: 8080
 
-#spring:
-#  application:
-#    name: supermarket-server
-#  datasource:
-#    driver-class-name: com.mysql.cj.jdbc.Driver
-#    url: jdbc:mysql://localhost:3306/supermarket_db?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
-#    username: root
-#    password: 123456
-#  data:
-#    redis:
-#      host: localhost
-#      port: 6379
-#      database: 0
-  spring:
-    datasource:
-      # 注意这里，把数据库名字、IP和端口换成了环境变量，默认走本地
-      url: jdbc:mysql://${MYSQLHOST:localhost}:${MYSQLPORT:3306}/${MYSQLDATABASE:supermarket_db}?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
-      username: ${MYSQLUSER:root}
-      password: ${MYSQLPASSWORD:123456} # 冒号后面是你本地的密码
-
-    data:
-      redis:
-        host: ${REDISHOST:localhost}
-        port: ${REDISPORT:6379}
-        password: ${REDISPASSWORD:}
+spring:
+  application:
+    name: supermarket-server
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/supermarket_db?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
+    username: root
+    password: 123456
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      database: 0
+#  spring:
+#    datasource:
+#      # 注意这里，把数据库名字、IP和端口换成了环境变量，默认走本地
+#      url: jdbc:mysql://${MYSQLHOST:localhost}:${MYSQLPORT:3306}/${MYSQLDATABASE:supermarket_db}?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
+#      username: ${MYSQLUSER:root}
+#      password: ${MYSQLPASSWORD:123456} # 冒号后面是你本地的密码
+#
+#    data:
+#      redis:
+#        host: ${REDISHOST:localhost}
+#        port: ${REDISPORT:6379}
+#        password: ${REDISPASSWORD:}
   servlet:
     multipart:
       max-file-size: 10MB      # 单个文件最大 10MB

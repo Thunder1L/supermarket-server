@@ -50,12 +50,14 @@ public class CartController {
 
     // 【修改点 1】路径改为 /checkout，与前端一致
     @PostMapping("/checkout")
-    public Result<String> checkout(@RequestBody OrderSubmitRequest req, HttpServletRequest request) {
+    // 【修复 1】把 Result<String> 泛型改为 Result<Long>，因为现在返回的是订单 ID
+    public Result<Long> checkout(@RequestBody OrderSubmitRequest req, HttpServletRequest request) {
         try {
-            // 【修改点 2】调用 service 的 checkout 方法
-            // (请确保 CartService.java 里的方法名也是 checkout，而不是 submitOrder)
-            String orderNo = cartService.checkout(getUserId(request), req);
-            return Result.success(orderNo);
+            // 【修复 2】用 Long 类型的 orderId 来接收 service 返回的真实订单 ID
+            Long orderId = cartService.checkout(getUserId(request), req);
+
+            // 【修复 3】把拿到的 orderId 原封不动地通过 Result 返回给前端
+            return Result.success(orderId);
         } catch (Exception e) {
             return Result.error(e.getMessage());
         }

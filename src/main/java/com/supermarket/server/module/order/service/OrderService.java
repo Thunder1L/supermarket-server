@@ -20,7 +20,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class OrderService {
@@ -162,10 +165,30 @@ public class OrderService {
     //               管理员端功能
     // ==========================================
 
-    public IPage<Orders> getAdminOrderList(Integer page, Integer size, Integer status, String orderNo) {
-        Page<Orders> p = new Page<>(page, size);
-        QueryWrapper<Orders> query = new QueryWrapper<>();
+//    public IPage<Orders> getAdminOrderList(Integer page, Integer size, Integer status, String orderNo) {
+//        Page<Orders> p = new Page<>(page, size);
+//        QueryWrapper<Orders> query = new QueryWrapper<>();
+//
+//        if (status != null) {
+//            query.eq("status", status);
+//        }
+//        if (StringUtils.hasText(orderNo)) {
+//            query.like("order_no", orderNo);
+//        }
+//        query.orderByDesc("create_time");
+//
+//        IPage<Orders> result = ordersMapper.selectPage(p, query);
+//        fillOrderItems(result.getRecords());
+//        return result;
+//    }
 
+    public IPage<Orders> getAdminOrderList(Integer page, Integer size, Integer status, String orderNo) {
+        // 防御性编程：如果前端没传，赋予默认值
+        page = page == null ? 1 : page;
+        size = size == null ? 10 : size;
+        Page<Orders> p = new Page<>(page, size);
+
+        QueryWrapper<Orders> query = new QueryWrapper<>();
         if (status != null) {
             query.eq("status", status);
         }
@@ -179,6 +202,7 @@ public class OrderService {
         return result;
     }
 
+
     public void shipOrder(Long orderId) {
         Orders order = ordersMapper.selectById(orderId);
         if (order == null) throw new RuntimeException("订单不存在");
@@ -189,15 +213,85 @@ public class OrderService {
         ordersMapper.updateById(order);
     }
 
+//    @Transactional(rollbackFor = Exception.class)
+//    public void deleteOrder(Long orderId) {
+//        Orders order = ordersMapper.selectById(orderId);
+//        if (order == null) {
+//            throw new RuntimeException("订单不存在");
+//        }
+//
+//        // 【安全加固】后端双重校验：只有 已完成(3) 或 已取消(4) 的订单才能被删除
+//        if (order.getStatus() != 3 && order.getStatus() != 4) {
+//            throw new RuntimeException("安全警告：只能删除已完成或已取消的订单！");
+//        }
+//
+//        // 实际开发中强烈建议在实体类上使用 @TableLogic 配合此处进行逻辑删除
+//        ordersMapper.deleteById(orderId);
+//        orderItemMapper.delete(new QueryWrapper<OrderItem>().eq("order_id", orderId));
+//    }
+
+    @Transactional(rollbackFor = Exception.class)
     public void deleteOrder(Long orderId) {
-        ordersMapper.deleteById(orderId);
-        // 最好也删除关联的 Item，或者逻辑删除
+        Orders order = ordersMapper.selectById(orderId);
+        if (order == null) throw new RuntimeException("订单不存在");
+
+        if (order.getStatus() != 3 && order.getStatus() != 4) {
+            throw new RuntimeException("安全警告：只能删除已完成或已取消的订单！");
+        }
+
+        // 必须先删除可能存在的售后记录，防止外键冲突或脏数据
+        afterSalesMapper.delete(new QueryWrapper<AfterSales>().eq("order_id", orderId));
+        // 删除子项
         orderItemMapper.delete(new QueryWrapper<OrderItem>().eq("order_id", orderId));
+        // 删除主表
+        ordersMapper.deleteById(orderId);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public void handleAfterSales(Long orderId, boolean approve) {
+        Orders order = ordersMapper.selectById(orderId);
+        if (order == null || order.getStatus() != 5) {
+            throw new RuntimeException("该订单未申请售后");
+        }
+
+        AfterSales sales = afterSalesMapper.selectOne(new QueryWrapper<AfterSales>().eq("order_id", orderId).last("LIMIT 1"));
+
+        if (approve) {
+            // 1. 订单变为已取消
+            order.setStatus(4);
+            // 2. 售后记录变为处理完成
+            if (sales != null) {
+                sales.setStatus(1); // 1: 同意退款
+                afterSalesMapper.updateById(sales);
+            }
+            // 3. 【核心修复】必须恢复商品库存！
+            restoreInventory(orderId);
+
+            // TODO: 实际开发中，这里还需要调用 userMapper 把订单的钱加回用户的 balance 里
+        } else {
+            // 拒绝退款，订单恢复为已完成状态
+            order.setStatus(3);
+            if (sales != null) {
+                sales.setStatus(2); // 2: 已拒绝
+                afterSalesMapper.updateById(sales);
+            }
+        }
+        ordersMapper.updateById(order);
     }
 
     // ==========================================
     //               辅助私有方法
     // ==========================================
+
+    private void restoreInventory(Long orderId) {
+        List<OrderItem> items = orderItemMapper.selectList(new QueryWrapper<OrderItem>().eq("order_id", orderId));
+        for (OrderItem item : items) {
+            // 利用 MySQL 行级锁原子性地把库存加回去，把销量减掉
+            productMapper.update(null, new com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper<com.supermarket.server.module.product.entity.Product>()
+                    .setSql("stock = stock + " + item.getCount() + ", sales = sales - " + item.getCount())
+                    .eq("id", item.getProductId()));
+        }
+    }
 
     private Orders checkOwner(Long userId, Long orderId) {
         Orders order = ordersMapper.selectById(orderId);
@@ -208,11 +302,25 @@ public class OrderService {
 
     private void fillOrderItems(List<Orders> orders) {
         if (orders == null || orders.isEmpty()) return;
+
+        // 1. 提取当前页所有订单的 ID 集合
+        List<Long> orderIds = orders.stream().map(Orders::getId).collect(Collectors.toList());
+
+        if (orderIds.isEmpty()) return;
+
+        // 2. 用 IN 语句一次性查询出这些订单的所有子项，避免 N+1 查库
+        List<OrderItem> allItems = orderItemMapper.selectList(
+                new QueryWrapper<OrderItem>().in("order_id", orderIds)
+        );
+
+        // 3. 在内存中按照 order_id 进行分组 (极大减轻数据库压力)
+        Map<Long, List<OrderItem>> itemsMap = allItems.stream()
+                .collect(Collectors.groupingBy(OrderItem::getOrderId));
+
+        // 4. 将分组后的子项塞回对应的订单中
         for (Orders order : orders) {
-            List<OrderItem> items = orderItemMapper.selectList(
-                    new QueryWrapper<OrderItem>().eq("order_id", order.getId())
-            );
-            order.setItems(items);
+            order.setItems(itemsMap.getOrDefault(order.getId(), new ArrayList<>()));
         }
     }
+
 }

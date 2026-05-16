@@ -14,7 +14,7 @@ public class AdminController {
     private AdminService adminService;
 
     // 发送验证码
-    @GetMapping("/sendCode")
+    @PostMapping("/sendCode")
     public Result<String> sendCode(@RequestParam String phone) {
         adminService.sendCode(phone);
         return Result.success("发送成功");

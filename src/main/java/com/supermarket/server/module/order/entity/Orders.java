@@ -18,7 +18,7 @@ public class Orders extends BaseEntity {
     private Long userId;        // 用户ID
     private BigDecimal totalAmount; // 总金额
 
-    // 收货信息
+    // 收货信息快照
     private String receiverName;
     private String receiverPhone;
     private String receiverAddress;
@@ -34,9 +34,15 @@ public class Orders extends BaseEntity {
 
     /**
      * 支付方式
-     * 1:微信 2:支付宝 3:余额 4:银行卡
+     * 1:微信/支付宝 2:余额支付
      */
     private Integer payType;
+
+    /**
+     * 配送方式
+     * 1:门店自提 2:外送上门
+     */
+    private Integer deliveryType;
 
     /**
      * 订单备注

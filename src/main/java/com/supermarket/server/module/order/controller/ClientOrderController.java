@@ -1,8 +1,10 @@
 package com.supermarket.server.module.order.controller;
 
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.supermarket.server.common.result.Result;
 import com.supermarket.server.common.util.JwtUtil;
 import com.supermarket.server.module.order.entity.Orders;
+import com.supermarket.server.module.order.mapper.OrdersMapper;
 import com.supermarket.server.module.order.service.OrderService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +20,9 @@ public class ClientOrderController {
     @Autowired private OrderService orderService;
     @Autowired private JwtUtil jwtUtil;
 
+    // 🚨 新增注入：为了在 mockPay 中直接更新订单状态
+    @Autowired private OrdersMapper ordersMapper;
+
     private Long getUserId(HttpServletRequest request) {
         return jwtUtil.parseToken(request.getHeader("Authorization")).get("userId", Long.class);
     }
@@ -28,17 +33,38 @@ public class ClientOrderController {
         return Result.success(orderService.getMyOrders(getUserId(request), status));
     }
 
-    // 支付
+    // 原有的 /pay 接口保留（以防你其他地方用到）
     @PostMapping("/pay")
     public Result<String> pay(@RequestBody Map<String, String> params, HttpServletRequest request) {
-        Long userId = getUserId(request); // 假设你封装了 getUserId
-
+        Long userId = getUserId(request);
         String orderNo = params.get("orderNo");
         String password = params.get("password");
 
         orderService.payOrder(userId, orderNo, password);
 
         return Result.success("支付成功");
+    }
+
+    // ==========================================
+    // 🚨 新增：专门配合前端二维码收银台的模拟支付接口
+    // ==========================================
+    @PostMapping("/mockPay")
+    public Result<String> mockPay(@RequestBody Map<String, Object> params) {
+        // 从请求体中安全地取出前端传过来的 orderId
+        Long orderId = Long.valueOf(params.get("orderId").toString());
+
+        // 乐观锁：只允许更新状态为 0 (待付款) 的订单
+        UpdateWrapper<Orders> updateWrapper = new UpdateWrapper<>();
+        updateWrapper.eq("id", orderId)
+                .eq("status", 0)
+                .set("status", 1); // 1: 支付成功，流转为已支付待处理
+
+        int rows = ordersMapper.update(null, updateWrapper);
+        if (rows > 0) {
+            return Result.success("模拟支付成功，订单已流转为已支付状态");
+        } else {
+            return Result.error("支付失败，订单状态异常或已过期");
+        }
     }
 
     // 取消

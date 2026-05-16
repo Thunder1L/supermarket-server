@@ -65,13 +65,55 @@ public class AdminService {
     /**
      * 注册
      */
+//    public void register(RegisterRequest req) {
+//        // 1. 校验口令
+//        if (!adminSecretKey.equals(req.getAdminSecret())) {
+//            throw new RuntimeException("管理员口令错误，无法注册");
+//        }
+//
+//        // 2. 校验验证码
+//        String key = "verify:admin:" + req.getPhone();
+//        String cacheCode = redisTemplate.opsForValue().get(key);
+//        if (cacheCode == null || !cacheCode.equals(req.getCode())) {
+//            throw new RuntimeException("验证码错误或已失效");
+//        }
+//
+//        // 3. 查重
+//        Long count = adminMapper.selectCount(new QueryWrapper<Admin>().eq("phone", req.getPhone()));
+//        if (count > 0) {
+//            throw new RuntimeException("该手机号已注册");
+//        }
+//
+//        // 4. 入库
+//        Admin admin = new Admin();
+//        admin.setUsername(req.getUsername());
+//        admin.setPhone(req.getPhone());
+//        admin.setPassword(req.getPassword());
+//        admin.setRole(1);
+//        // createTime 由 MybatisPlusConfig 自动填充，这里可以不写，或者手动写也行
+//        adminMapper.insert(admin);
+//
+//        // 注册成功后删除验证码
+//        redisTemplate.delete(key);
+//    }
+
     public void register(RegisterRequest req) {
-        // 1. 校验口令
-        if (!adminSecretKey.equals(req.getAdminSecret())) {
-            throw new RuntimeException("管理员口令错误，无法注册");
+        // 1. 根据角色判断校验逻辑
+        if ("ADMIN".equals(req.getRole())) {
+            // 管理员必须校验配置文件中的超级口令
+            if (!adminSecretKey.equals(req.getAdminSecret())) {
+                throw new RuntimeException("管理员口令错误，无法注册");
+            }
+        } else if ("EMPLOYEE".equals(req.getRole())) {
+            // 员工校验门店授权码 (这里暂时写死为 "STORE888"，你可以后续放在数据库或配置中)
+            if (!"STORE888".equals(req.getStoreCode())) {
+                throw new RuntimeException("门店授权码错误，无法注册");
+            }
+        } else {
+            throw new RuntimeException("非法的注册角色");
         }
 
-        // 2. 校验验证码
+        // 2. 校验短信验证码
         String key = "verify:admin:" + req.getPhone();
         String cacheCode = redisTemplate.opsForValue().get(key);
         if (cacheCode == null || !cacheCode.equals(req.getCode())) {
@@ -89,11 +131,14 @@ public class AdminService {
         admin.setUsername(req.getUsername());
         admin.setPhone(req.getPhone());
         admin.setPassword(req.getPassword());
-        admin.setRole(1);
-        // createTime 由 MybatisPlusConfig 自动填充，这里可以不写，或者手动写也行
+
+        // 【关键修复】根据前端传来的 role 设置数据库对应字段
+        // 假设 1 代表管理员，2 代表普通员工
+        admin.setRole("ADMIN".equals(req.getRole()) ? 1 : 2);
+
         adminMapper.insert(admin);
 
-        // 注册成功后删除验证码
+        // 5. 注册成功后删除验证码
         redisTemplate.delete(key);
     }
 
@@ -121,14 +166,28 @@ public class AdminService {
             }
         }
 
-        String token = jwtUtil.createToken(admin.getId(), admin.getUsername(), "ADMIN");
+        // 🚨 核心修复 1：把数据库里的真实角色取出来，转成字符串类型以适配后续传参
+        String realRole = String.valueOf(admin.getRole());
+
+        // 🚨 核心修复 2：Token 里也不要写死 "ADMIN" 了，塞入真实角色
+        String token = jwtUtil.createToken(admin.getId(), admin.getUsername(), realRole);
 
         return new LoginResult()
                 .setToken(token)
                 .setId(admin.getId())
                 .setUsername(admin.getUsername())
                 .setAvatar(admin.getAvatar())
-                .setRole("ADMIN");
+                // 🚨 核心修复 3：把写死的 "ADMIN" 换成从数据库动态获取的 role
+                .setRole(realRole); // 注意：如果你的 LoginResult 中 setRole 方法接收的是 Integer 类型，请直接传入 admin.getRole()
+
+//        String token = jwtUtil.createToken(admin.getId(), admin.getUsername(), "ADMIN");
+//
+//        return new LoginResult()
+//                .setToken(token)
+//                .setId(admin.getId())
+//                .setUsername(admin.getUsername())
+//                .setAvatar(admin.getAvatar())
+//                .setRole("ADMIN");
     }
 
     /**
